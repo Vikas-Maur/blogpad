@@ -25,11 +25,9 @@ class StartScreen(Tk):
         )
         self.name_labels = self.CreateLabels(self.brand_name_list)
 
-        self.insertion_label_width = len("myCODEnotein")*2
-        self.insertion_label_x = 85
-        self.insertion_label_y = 90
-        self.insertion_cursor = Label(self,width=self.insertion_label_width
-                                      ,anchor="w",font="consolas 30",text="|"
+        self.insertion_label_x,self.insertion_label_y = 85,90
+        self.insertion_cursor = Label(self,width=100
+                                      ,anchor="w",font="consolas 30",text=""
                                       ,**self.label_config)
         self.insertion_cursor.place(x=self.insertion_label_x,y=self.insertion_label_y)
 
@@ -59,14 +57,11 @@ class StartScreen(Tk):
         self.after(4000,self.EndStartScreen)
 
     def AnimateBrandName(self):
-        if self.insertion_label_width<14:
-            self.insertion_cursor.destroy()
+        if self.insertion_label_x>400:
             return
-        self.insertion_label_width-=1
-        self.insertion_label_x+=25
-        self.insertion_cursor.config(width=self.insertion_label_width)
+        self.insertion_label_x+=13
         self.insertion_cursor.place(x=self.insertion_label_x,y=self.insertion_label_y)
-        self.after(200,self.AnimateBrandName)
+        self.after(65,self.AnimateBrandName)
 
     def AnimateTagline(self):
         if self.tagline_size==14:

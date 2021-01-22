@@ -83,7 +83,8 @@ class TextPage(page.Page):
     def InsertInEntry(self,given_entry,text):
         given_entry.entry.delete("0", "end")
         given_entry.entry.insert("0", text)
-        given_entry.place_holder.config(text=given_entry.placeholder + "(filled)")
+        if text:
+            given_entry.place_holder.config(text=given_entry.placeholder + "(filled)")
 
     def ShortcutForStyle(self,style):
         self.style_combo.set(style)
@@ -272,7 +273,7 @@ class TextPage(page.Page):
         h1 = soup.find("h1")
         if h1:
             self.text.insert("insert",h1.text,"h1")
-        self.text.insert("insert","\n")
+            self.text.insert("insert","\n")
         sections = soup.find_all("div",class_="section")
         for section in sections:
             section_html = section.findChildren(recursive=False)
