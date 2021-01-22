@@ -1,0 +1,40 @@
+The Directory Strucuture:
+
+blogpad
+
+    db_code
+        bloghandle.py
+        renew.py
+        testrecords.py
+
+    images
+        firstvisit
+            0.png
+            1.png
+            2.png
+            3.png
+            4.png
+            5.png
+        rule.png
+        rules_tabsection.png
+        save.png
+        style.png
+        tabsection.png
+        upsidebar.png
+
+    pages
+        homepage.py
+        informationpage.py
+        page.py
+        settingspage.py
+        textpage.py
+        utils.py
+
+    directory_structure.txt
+    installation_process.txt
+    logo.ico
+    main.py
+    myCODEnotein.json
+    requirements.txt
+    startanimation.py
+
