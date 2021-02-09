@@ -8,7 +8,7 @@ try:
     from startanimation import StartScreen
 except ModuleNotFoundError as e:
     module = e.name
-    if module in ("bs4","html5lib","mysql"):
+    if module in ("mysql",):
         print("You Have Not Installed The GUI.\nOr Some Dependencies Are Missing.\nPlease Follow The Installation_process.txt to know how to install those")
     else:
         print("The Module Named :",module,"is not found.\nWe suspect that you have changed the directory structure\nPlease either follow the directory_strcuture.txt to restore the directory structure or re download the GUI")

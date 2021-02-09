@@ -1,4 +1,0 @@
-mysql-connector
-html5lib
-bs4
-
