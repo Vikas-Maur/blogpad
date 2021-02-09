@@ -48,7 +48,8 @@ class BlogPad(Tk):
         self.patterns = {
             "title": re.compile(r"\{\{ title \}\}"),
             "teleporter": re.compile(r"\{\{ teleporter \}\}"),
-            "content": re.compile(r"\{\{ content \}\}")
+            "content": re.compile(r"\{\{ content \}\}"),
+            "meta_desc": re.compile(r"\{\{ meta_desc \}\}")
         }
 
         self.pages = {
@@ -116,32 +117,8 @@ class BlogPad(Tk):
             self.ChangePage("textpage")
             page = self.pages["textpage"]
             page.InsertTitle(info["title"])
-            page.InsertBlogName(name)
-            page.ConvertFromHTML(info["content"])
-
-    def SaveBlog(self,blog):
-        saved = self.bloghandle.SaveBog(blog)
-        if saved[0]:
-            self.CreateFile(blog)
-            messagebox.showinfo("Successfully Saved", saved[1])
-        else:
-            messagebox.showerror("Error",saved[1])
-
-    def CreateFile(self,blog):
-        title, teleporter, content = blog["title"], blog["teleporter"], blog["content"]
-        with open("template.html") as f:
-            html = f.read()
-        html = self.patterns["title"].sub(title, html, 1)
-        html = self.patterns["teleporter"].sub(teleporter,html,1)
-        html = self.patterns["content"].sub(content, html, 1)
-        name = self.bloghandle.name
-        name = "-".join(name.split("_"))
-        dir = self.info["saved_file_dir"]
-        if not os.path.isdir(dir):
-            dir = ""
-        file = dir+f"/{name}.html"
-        with open(file,"w") as f:
-            f.write(html)
+            page.InsertMetaDesc(info["meta_desc"])
+            page.InsertContent(info["content"])
 
     def AddNewBlog(self):
         prompt = "Rules For Giving Name:\n1.NAME CAN CONTAIN ONLY ALPHABETS,DIGITS,UNDERSCORE AND DOLLOR.\n2.NAME CANT HAVE ONLY DIGITS THAT MEANS \nTHERE MUST BE ATLEAST 1 ALPHABET OR DOLLOR OR UNDERSCORE.\n\nRecommendations:\n1.DON'T USE DOLLAR\n2.TRY TO GO FOR SMALLER NAMES\n3.THERE MUST NOT BE ANOTHER BLOG WITH SAME NAME\n\n(DO YOU KNOW\t: these are exact rules for naming a database/table in sql)\n\nPlease Enter blogname"
@@ -161,6 +138,32 @@ class BlogPad(Tk):
                 return
             self.bloghandle.RegisterBlog(len(self.total_blogs)+1,name)
             self.OpenBlog(name)
+
+    def SaveBlog(self,variables):
+        records, title, meta_desc, teleporter, content = variables
+        saved = self.bloghandle.SaveBog(records)
+        if saved[0]:
+            file = self.CreateFile(title, meta_desc, teleporter, content)
+            messagebox.showinfo("Successfully Saved!!!",f"Successfully Saved With Name {file}")
+        else:
+            messagebox.showerror("Error Occurred While Saving",saved[-1])
+
+    def CreateFile(self,title, meta_desc, teleporter, content):
+        with open("template.html") as f:
+            html = f.read()
+        html = self.patterns["title"].sub(title, html, 1)
+        html = self.patterns["meta_desc"].sub(meta_desc, html, 1)
+        html = self.patterns["teleporter"].sub(teleporter,html,1)
+        html = self.patterns["content"].sub(content, html, 1)
+        name = self.bloghandle.name
+        name = "-".join(name.split("_"))
+        dir = self.info["saved_file_dir"]
+        if not os.path.isdir(dir):
+            dir = os.getcwd()
+        file = os.path.join(dir,f"{name}.html")
+        with open(file,"w") as f:
+            f.write(html)
+        return file
 
     def CheckBlogname(self,name):
         symbols = ("$","_")

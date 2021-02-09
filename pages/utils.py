@@ -13,7 +13,7 @@ COLORS = {
 }
 
 STYLES = {
-    "normal":{"font":"consolas 18 bold","foreground":"black","background":"white"}
+    "normal":{}
     ,"h1":{"font":"consolas 30 bold","foreground":COLORS["primary"],"background":"white"}
     ,"h2":{"font":"consolas 26 bold","foreground":COLORS["danger"],"background":"white"}
     ,"h3":{"font":"consolas 22 bold","foreground":COLORS["warning"],"background":"white"}
@@ -22,18 +22,20 @@ STYLES = {
 }
 
 STYLE_TO_TAG = {
-    #tag:(<tagname>,attributes,textaftertag,beforeendtag)
-    "normal":("div","class='normal'","","")
-    ,"h1":("h1","","","")
-    ,"h2":("h2","","""<span class="badge bg-danger"> </span> ""","")
-    ,"h3":("h3","","""<span class="badge bg-warning"> </span> ""","")
-    ,"code":("pre","","<code>","</code>")
-    ,"code+tab":("div","","","")
+    #"tag":("text_at_start","text_at_end")
+    "h1":("<h1><span class='badge bg-primary'> </span> "," <span class='badge bg-primary'> </span></h1>",3)
+    ,"h2":("<h2><span class='badge bg-danger'> </span> ","</h2>",3)
+    ,"h3":("<h3><span class='badge bg-warning'> </span> ","</h3>",3)
+    ,"code":("<pre><code class='python'>","</code></pre>",4)
+    ,"code+tab":("<pre><code class='python'>","</code></pre>")
 }
 
 class MyButton(Button):
-    def __init__(self,master,**kwargs):
+    def __init__(self,master,color=None,**kwargs):
         super().__init__(master,**kwargs)
+        if color:
+            self.ChangeBGOnHover(color)
+
 
     def ChangeBGOnHover(self,color):
         bg=self.cget("bg")

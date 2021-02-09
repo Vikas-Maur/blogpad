@@ -1,4 +1,4 @@
-pip install -r .\requirements.txt
+pip install mysql-connector
 
 Run the above command in command prompt.
 Note: command prompt must be in the same 

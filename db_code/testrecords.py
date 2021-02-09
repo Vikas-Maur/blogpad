@@ -1,15 +1,12 @@
 
 TEST_RECORD_STRING = "abcdefghijklmnopqrstuvwxyz"
 TEST_RECORD_REAL = "tkinter_real"
-TEST_RECORD_REAL_CONTENT = r"""
-<h1>myCODEnotein HQ</h1>
-<div class=\"section\">
-<h2>Whats this HQ for?</h2>
-<pre><code>All the flight details,flight info ...etc is done here</pre></code>
-<h3>We are also having a HQ at YouTube named : myCODEnotein</h2>
-<h3>Make sure to visit it as well</h3>
-</div>
-"""
+TEST_RECORD_REAL_CONTENT = ("'h1','myCODEnotein HQ'"
+                            ,"'h2','Whats this HQ for?'"
+                            ,"'code','All the flight details,flight info ...etc is done here'"
+                            ,"'h3','We are also having a HQ at YouTube named : myCODEnotein'"
+                            ,"'h3','Make sure to visit it as well'"
+                            )
 
 def CreateTestRecords(bloghandle,start_index):
     blogs = []
@@ -17,7 +14,10 @@ def CreateTestRecords(bloghandle,start_index):
         conn, cursor = bloghandle.connection, bloghandle.cursor
         bloghandle.CreateBlog(TEST_RECORD_REAL)
         cursor.execute(
-            f"""INSERT INTO {TEST_RECORD_REAL} VALUES (1,"title","tkinter| by myCODEnotein"),(2,"teleporter","teleporter"),(3,"content","{TEST_RECORD_REAL_CONTENT}")""")
+            f"""INSERT INTO {TEST_RECORD_REAL} VALUES (1,"title","title","tkinter| by myCODEnotein"),(2,"meta_desc","meta_desc","This is description of the blog")"""
+        )
+        for index,record in enumerate(TEST_RECORD_REAL_CONTENT):
+            cursor.execute(f"INSERT INTO {TEST_RECORD_REAL} VALUES ({index+3},'content',{record})")
         for i in range(len(TEST_RECORD_STRING) + 1):
             index = start_index + i + 1
             if i == 0:

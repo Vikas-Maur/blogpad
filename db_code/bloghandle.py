@@ -42,7 +42,8 @@ class BlogHandle:
 
     def CreateBlog(self,name):
         try:
-            query = f"""CREATE TABLE {name} (sno INT PRIMARY KEY,type CHAR(20) UNIQUE,content TEXT)"""
+            query = f"""CREATE TABLE {name} (sno INT PRIMARY KEY,type CHAR(20),tag CHAR(20),content TEXT)"""
+            # query = f"""CREATE TABLE {name} (sno INT PRIMARY KEY,type CHAR(20) UNIQUE,content TEXT)"""
             self.cursor.execute(query)
             return True
         except Exception as e:
@@ -60,35 +61,30 @@ class BlogHandle:
     def OpenBlog(self,name):
         try:
             self.name = name
-            query = f"""SELECT * from {self.name} ORDER BY sno"""
-            self.cursor.execute(query)
-            records = self.cursor.fetchall()
-            info = {"title": "", "content": ""}
-            for record in records:
-                if "title" in record:
-                    info["title"] = record[-1]
-                else:
-                    info["content"] = record[-1]
-        except:
-            info=None
+
+            self.cursor.execute(f"SELECT content FROM {name} WHERE type='title'")
+            title = self.cursor.fetchall()[0][0]
+
+            self.cursor.execute(f"SELECT content FROM {name} WHERE type='meta_desc'")
+            meta_desc = self.cursor.fetchall()[0][0]
+
+            self.cursor.execute(f"SELECT * FROM {name} WHERE type='content'")
+            content = self.cursor.fetchall()
+
+            info = {"title":title,"meta_desc":meta_desc,"content":content}
+        except Exception as e:
+            info = {"title":"","meta_desc":"","content":""}
         return info
 
-    def SaveBog(self,blog):
-        if blog["title"]=="":
-            return False,"Please Fill The Title Box"
+    def SaveBog(self,records):
         try:
-            title,html,teleporter = blog["title"],blog["content"],blog["teleporter"]
-            self.cursor.execute(f"""DELETE FROM {self.name}""")
-            self.connection.commit()
-            content = html.split('"')
-            content = r'\"'.join(content)
-            teleporter = r'\"'.join(teleporter.split('"'))
-            query = fr"""INSERT INTO {self.name} VALUES (1,"title","{title}") ,(2,"teleporter","{teleporter}") ,(3,"content","{content}")"""
-            self.cursor.execute(query)
+            self.cursor.execute(f"DELETE FROM {self.name}")
+            for record in records:
+                self.cursor.execute(f"INSERT INTO {self.name} VALUES {record}")
             self.connection.commit()
         except Exception as e:
             return False,e
-        return True,"Your Blog Is Saved Successfully"
+        return (True,)
 
     def DeleteBlog(self,blog):
         try:

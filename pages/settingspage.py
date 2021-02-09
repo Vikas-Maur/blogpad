@@ -19,22 +19,20 @@ class SettingPage(page.Page):
 
         self.row = 0
         self.db_entries = self.CreateDatabaseSettings()
-        self.choose_dir = Button(self.setting_frame, font=self.font, text="Choose Dir",
+        self.choose_dir = MyButton(self.setting_frame,color="lightgrey",font=self.font, text="Choose Dir",
                                  command=self.ChooseDir)
         self.choose_dir.grid(row=self.row, column=2, sticky="nsew")
         self.save_file_entry = self.CreateEntry("Default Dir To Save File",os.path.relpath(self.info["saved_file_dir"]))
 
-        self.cancel_button = MyButton(self.setting_frame,font=self.font,text="Cancel(ctrl+c)"
+        self.cancel_button = MyButton(self.setting_frame,color=COLORS["warning"],font=self.font,text="Cancel(ctrl+c)"
                                       ,bg=COLORS["danger"],fg="white"
                                       ,command=self.master.GoToPrevPage)
         self.cancel_button.grid(row=self.row,column=0,sticky="nsew",pady=20,padx=10)
-        self.cancel_button.ChangeBGOnHover(COLORS["warning"])
 
-        self.save_button = MyButton(self.setting_frame,font=self.font,text="Save(ctrl+s)"
+        self.save_button = MyButton(self.setting_frame,color=COLORS["primary"],font=self.font,text="Save(ctrl+s)"
                                     ,bg=COLORS["success"],fg="white"
                                     ,command=self.UpdateInfo)
         self.save_button.grid(row=self.row,column=1,sticky="nsew",pady=20,padx=10)
-        self.save_button.ChangeBGOnHover(COLORS["primary"])
 
     def CreateDatabaseSettings(self):
         info = self.info["database"]

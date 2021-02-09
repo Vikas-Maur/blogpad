@@ -73,9 +73,8 @@ class HomePage(page.Page):
         blogs = []
         row=column=0
         for i in range(20):
-            b=MyButton(self.blog_frame,width=15,height=3,bg="white",bd=0,font=self.font
+            b=MyButton(self.blog_frame,color="lightgrey",width=15,height=3,bg="white",bd=0,font=self.font
                        ,command=lambda i=i:self.OpenBlog(i))
-            b.ChangeBGOnHover("lightgrey")
             b.bind("<Button-3>",func=self.RightClickMenu)
             b.grid(row=row,column=column,sticky="nsew",padx=3,pady=3)
             if column==4:
