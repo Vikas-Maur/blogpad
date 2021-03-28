@@ -4,7 +4,7 @@ from pages.utils import *
 import os
 
 class SettingPage(Page):
-    def __init__(self,master,**kwargs):
+    def __init__(self,master,first_time=False,**kwargs):
         super().__init__(master,**kwargs)
 
         self.name_label = Label(self,text="Change Settings",font="consolas 45 bold",bg="lightgrey")
@@ -20,7 +20,8 @@ class SettingPage(Page):
         self.choose_dir_buttons = {}
         self.labels , self.entries = self.CreateSettings(self.info)
 
-        self.cancel_button = HoverableButton(self.setting_frame
+        if not first_time:
+            self.cancel_button = HoverableButton(self.setting_frame
                                         ,on_enter={"background":COLORS["warning"]}
                                         ,background=COLORS["danger"]
                                         ,foreground="white"
@@ -28,7 +29,7 @@ class SettingPage(Page):
                                         ,text="Cancel Or Reset"
                                         ,command=self.Cancel
                                         )
-        self.cancel_button.grid(row=self.row,column=0,sticky="nsew",padx=10,pady=10)
+            self.cancel_button.grid(row=self.row,column=0,sticky="nsew",padx=10,pady=10)
         
         self.save_button = HoverableButton(self.setting_frame
                                         ,on_enter={"background":"darkgreen"}

@@ -11,6 +11,10 @@ class BlogPad(Tk):
     def __init__(self):
         super().__init__()
 
+        self.geometry("1300x700+0+0")
+        self.wm_iconbitmap("images/logo.ico")
+        self.title("Blogpad by myCODEnotein")
+
         # Configuring the frames to expand if the root window expands
         self.rowconfigure(0,weight=1)
         self.columnconfigure(0,weight=1)
@@ -20,19 +24,16 @@ class BlogPad(Tk):
         self.info = self.ReadJson()
 
         # Creating a bloghandle (database stuff)
-        self.blog_handle = bloghandle.BlogHandle(self)
+        try:
+            self.blog_handle = bloghandle.BlogHandle(self)
+        except:
+            self.settings = settingpage.SettingPage(self,first_time=True)
+            self.settings.pack(fill=BOTH,expand=True)
+            return        
 
         # Creating a menu
         self.menu = menu.BlogPadMenu(self)
         self.config(menu=self.menu)
-
-        # MAIN WINDOW SETTINGS
-        # This is not added at the top because after menu is created
-        # The window coordinates change (I don't know why)
-        # If this is here then the window appears at (0,0) else not due to menu
-        self.geometry("1300x700+0+0")
-        self.wm_iconbitmap("images/logo.ico")
-        self.title("Blogpad by myCODEnotein")
 
         # Storing the pages
         self.pages = {
@@ -65,6 +66,7 @@ class BlogPad(Tk):
     def RestartGUI(self):
         self.destroy()
         self.__init__()
+        self.focus_set()
 
     def OpenPage(self,page):
         self.pages[page].tkraise()

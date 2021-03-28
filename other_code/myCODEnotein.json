@@ -1,5 +1,1 @@
-{
-    "database": {"user": "", "password": "", "database": ""}
-    , "parent_dir": ["."]
-    , "save_file_in": ["."]
-}
+{"database": {"user": "", "password": "", "database": ""}, "parent_dir": ["."], "save_file_in": ["."]}
