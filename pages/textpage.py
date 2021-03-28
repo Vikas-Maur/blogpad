@@ -1,370 +1,878 @@
 from tkinter import *
-from tkinter import font,scrolledtext,filedialog,messagebox,simpledialog
-from pages import page
-from .utils import *
+from tkinter import ttk,scrolledtext,filedialog,messagebox,font
+from .page import *
+from pages.utils import *
+import os
 
-class TextPage(page.Page):
+class TextPage(Page):
+    def __init__(self,master,**kwargs):
+        super().__init__(master,**kwargs)
+        self.content = ""  # A variable for storing the saved content of a blog
+
+        self.defined_tags = (*STYLES.keys(),)
+
+        # Creating all the frames and dividing the page
+        self.upside_bar = UpsideBar(self,height=100,bg=COLORS["dark"])
+        self.entries = self.upside_bar.entries
+        self.upside_bar.pack(side=TOP,fill=X)
+        self.upside_bar.grid_propagate(0)
+
+        self.sidebar = SideBar(self,width=350,bg="lightgrey")
+        self.sidebar.pack(side=LEFT,fill=Y)
+        self.sidebar.grid_propagate(0)
+        
+        self.text_bar = TextBar(self,bg="grey")
+        self.text_bar.pack(side=LEFT,fill=BOTH,expand=True)
+
+        self.shortcuts = {
+            "<Control-s>":self.SaveBlog
+        }
+
+    def ChangeTag(self,e=None):
+        self.text_bar.ChangeTag()
+
+    def InsertLink(self):
+        self.text_bar.InsertLink()
+
+    def InsertTabSection(self):
+        self.text_bar.InsertTabSection()
+    
+    def ChooseIMG(self):
+        self.text_bar.ChooseIMG()
+
+    def ChooseVideo(self):
+        self.text_bar.ChooseVideo()
+  
+    def InsertTextRecords(self,records,clear_text=False):
+        if clear_text:
+            self.text_bar.text.delete("1.0","end")
+        for record in records:
+            self.text_bar.text.insert("insert",record[0],record[1])
+            self.text_bar.text.insert("insert","\n\n") 
+
+    def InsertEntries(self,**kwargs):
+        entries = self.entries
+        for key,value in kwargs.items():
+            entries[key].delete("0","end")
+            entries[key].insert("0",value)
+
+    def SaveBlog(self,e=None):
+        self.text_bar.ConvertToHTML()
+        entries = {
+            "title":self.entries["title"].get()
+            ,"meta_desc":self.entries["meta_desc"].get()
+            ,"content":self.text_bar.text.get("1.0","end")
+        }
+        self.master.SaveBlog(entries)
+
+    def UpdateAllBlogs(self):
+        # EVERYTHING IS SAME AS SaveBlog METHOD EXCEPT THAT THIS METHOD USES self.master.SaveFile WHILE THAT METHOD USES self.master.SaveBlog
+        self.text_bar.ConvertToHTML()
+        entries = {
+            "title":self.entries["title"].get()
+            ,"meta_desc":self.entries["meta_desc"].get()
+            ,"content":self.text_bar.text.get("1.0","end")
+        }
+        self.master.SaveFile(entries)
+
+class UpsideBar(Frame):
     def __init__(self,master,**kwargs):
         super().__init__(master,**kwargs)
 
-        self.first_h2_content = True
-        self.show_shortcut_window = None # Variable for window which shows shortcuts
+        config = {"foreground":"white","background":COLORS["success"],"font":"consolas 18 bold","text":"Save","bd":0,"command":master.SaveBlog}
+        self.save_button = HoverableButton(self,on_enter={"background":"darkgreen","foreground":"lightgrey"},**config)
+        self.save_button.grid(row=0,column=0,sticky="nsew",rowspan=2,pady=(10,0),padx=20)
 
-        self.master_shortcuts = {
-            "<Control-s>":lambda e:self.SaveBlog()
-            ,"<Control-i>":lambda e:self.ChooseIMG()
+        label_config = {"font":"consolas 20 bold","bg":COLORS["dark"],"fg":"white"}
+
+        Label(self,text="Title:",**label_config).grid(row=0,column=1,sticky="nsew",pady=5)
+        Label(self,text="Meta Desc:",**label_config).grid(row=1,column=1,sticky="nsew")
+        Label(self,text="Language:",**label_config).grid(row=0,column=3,sticky="nsew",padx=(20,0),pady=5)
+
+        self.entries = {
+            "title":ttk.Entry(self,font="consolas 16 bold")
+            ,"meta_desc":ttk.Entry(self,font="consolas 16 bold")
+            ,"language":ttk.Entry(self,font="consolas 16 bold")
         }
 
-        self.u_bg = COLORS["dark"]
-        self.upside_bar = Frame(self,bg=self.u_bg,height=80)
-        self.upside_bar.grid_propagate(False)
-        self.upside_bar.pack(side=TOP,fill=X)
+        self.entries["title"].grid(row=0,column=2,sticky="nsew",pady=5)
+        self.entries["meta_desc"].grid(row=1,column=2,sticky="nsew")
+        self.entries["language"].grid(row=0,column=4,sticky="nsew",pady=5)
 
-        self.save_img = PhotoImage(file="images/save.png")
-        self.save_button = MyButton(self.upside_bar,color="darkgreen",command=self.SaveBlog
-                                  ,image=self.save_img,text="Save"
-                                  ,font="consolas 20 bold",bg=COLORS["success"]
-                                  ,compound=LEFT,fg="white")
-        self.save_button.grid(row=0,column=0,sticky="nsew",padx=20,pady=10)
+        shortcut_config = {"background":COLORS["secondary"],"foreground":"white","text":"Show Shortcuts","font":"consolas 20 bold","bd":0}
+        
+        self.know_shortcuts = HoverableButton(self,on_enter={"background":COLORS["dark"]},**shortcut_config)
+        self.know_shortcuts.grid(row=0,column=5,sticky="nsew",rowspan=2,pady=15,padx=20)
 
-        self.t_label = Label(self.upside_bar,text="Title:",bg=self.u_bg,fg="white",font="consolas 20 bold")
-        self.t_label.grid(row=0,column=1,sticky="nsew")
-        self.title = ttk.Entry(self.upside_bar,font="consolas 20 bold")
-        self.title.grid(row=0,column=2)
+class SideBar(Frame):
+    def __init__(self,master,**kwargs):
+        super().__init__(master,**kwargs)
+        
+        self.tags = master.defined_tags
 
-        self.m_label = Label(self.upside_bar,text="Meta Description:",bg=self.u_bg,fg="white",font="consolas 20 bold")
-        self.m_label.grid(row=0,column=3,sticky="nsew",padx=(80,0))
-        self.meta_desc = ttk.Entry(self.upside_bar,font="consolas 20 bold")
-        self.meta_desc.grid(row=0,column=4)
+        label_config = {"font":"consolas 16 bold","bg":"lightgrey"}
+        Label(self,text="Tag:",**label_config).grid(row=0,column=0,pady=10,padx=(10,))
 
-        self.s_bg = "darkgrey"
-        self.sidebar = Frame(self,width=300,bg=self.s_bg)
-        self.sidebar.pack(side=LEFT,expand=True,fill=BOTH)
+        self.tag_box = ttk.Combobox(self,values=self.tags,font="consolas 14 bold")
+        self.tag_box.grid(row=0,column=1,pady=10)
+        self.tag_box.bind("<<ComboboxSelected>>",master.ChangeTag)
 
-        self.s_label = Label(self.sidebar,text="Style:",bg=self.s_bg,font="consolas 20 bold")
-        self.s_label.grid(row=0,column=0,sticky="nsew",pady=10)
-        self.style_keys = (*tuple(STYLES.keys()),"img")
-        self.style = ttk.Combobox(self.sidebar,font="consolas 13 bold",values=self.style_keys)
-        self.style.grid(row=0,column=1,sticky="nsew",pady=10)
-        self.style.bind("<<ComboboxSelected>>",self.AddTag)
+        img_config = {"text":"Insert Img","command":master.ChooseIMG,"font":"consolas 20 bold","foreground":"white","background":"darkblue"}
+        self.insert_img = HoverableButton(self,on_enter={"foreground":"darkgrey"},**img_config)
+        self.insert_img.grid(row=1,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
 
-        self.insert_img = MyButton(self.sidebar,color="darkgreen",command=self.ChooseIMG
-                                   ,bg=COLORS["success"],fg="white"
-                                   ,text="InsertIMG",font="consolas 18 bold")
-        self.insert_img.grid(row=1,column=0,sticky="nsew",pady=(10,0))
+        video_config = {"text":"Insert Video","command":master.ChooseVideo,"font":"consolas 20 bold","foreground":"white","background":COLORS["success"]}
+        self.insert_video = HoverableButton(self,on_enter={"foreground":"darkgrey"},**video_config)
+        self.insert_video.grid(row=2,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
 
-        self.insert_tab = MyButton(self.sidebar,color="darkblue",command=self.InsertTabSection
-                                   ,bg=COLORS["primary"],fg="white"
-                                   ,text="InsertTabSection",font="consolas 18 bold")
-        self.insert_tab.grid(row=1,column=1,sticky="nsew",pady=(10,0))
+        tabsection_config = {"text":"Insert TabSection","command":master.InsertTabSection,"font":"consolas 20 bold","foreground":"white","background":COLORS["secondary"]}
+        self.insert_tabsection = HoverableButton(self,on_enter={"foreground":"darkgrey"},**tabsection_config)
+        self.insert_tabsection.grid(row=3,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
 
-        self.insert_link = MyButton(self.sidebar,color="darkred",command=self.InsertALink
-                                   ,bg=COLORS["danger"],fg="white"
-                                   ,text="InsertALink",font="consolas 18 bold"
-                                    )
-        self.insert_link.grid(row=2,column=0,sticky="nsew",pady=10)
+        Label(self,text="href:",**label_config).grid(row=4,column=0,padx=10,pady=(10,0))
+        self.link_href = ttk.Entry(self,font="consolas 14 bold")
+        self.link_href.grid(row=4,column=1,pady=(10,0))
 
-        self.shortcut_text = "\n".join(
-            ("     -SHORTCUTS-     "
-             ,"ctrl+1 For H1"
-             ,"ctrl+2 For H2"
-             ,"ctrl+3 For H3"
-             ,"ctrl+4 For Code"
-             ,"ctrl+5 for Code+tab"
-             ,"ctrl+i for img"
-             ,"ctrl+n for normal"
-             ,"ctrl+t for inserting tab"
-             ,"ctrl+l for inserting the link"
-             ,"ctrl+s for saving"
-             )
-        )
-        self.show_shortcuts = MyButton(self.sidebar
-                                       ,color="black",command=self.ShowShortcuts
-                                       ,bg=COLORS["dark"],fg="white"
-                                       ,text="ShowShortcuts",font="consolas 18 bold"
-                                       )
-        self.show_shortcuts.grid(row=2,column=1,sticky="nsew",pady=10)
+        Label(self,text="LinkText:",**label_config).grid(row=5,column=0,padx=5,pady=(10,0))
+        self.link_text = ttk.Entry(self,font="consolas 14 bold")
+        self.link_text.grid(row=5,column=1,pady=(10,0))
 
-        self.code_tab_rules = MyButton(self.sidebar,color="darkred",command=self.ShowTabSectionRules,justify="left"
-                                       ,font="consolas 20 bold",bg=COLORS["danger"],fg="white"
-                                       ,text="Click To Know \nThe Rules For Creating\nA Code+Tab Region")
-        self.code_tab_rules.grid(row=3,column=0,sticky="nsew",pady=10,columnspan=2)
-        self.d_bg="lightgrey"
-        self.downside_bar = Frame(self,bg=self.d_bg)
-        self.downside_bar.pack(side=TOP,fill=BOTH,expand=True)
+        link_config = {"text":"Insert The Link","command":master.InsertLink,"font":"consolas 20 bold","foreground":"white","background":COLORS["danger"]}
+        self.insert_link = HoverableButton(self,on_enter={"foreground":"darkgrey"},**link_config)
+        self.insert_link.grid(row=6,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
 
-        self.font = font.Font(self, font="consolas 20 bold")
-        self.text = scrolledtext.ScrolledText(self.downside_bar
-                                              ,wrap=WORD,undo=True,maxundo=-1
-                                              ,tabs=self.font.measure("    ")
-                                              ,insertbackground="gold",font="consolas 20 bold")
-        self.text.pack(side=RIGHT,fill=BOTH,expand=True,padx=10,pady=1)
+class TextBar(Frame):
+    def __init__(self,master,**kwargs):
+        super().__init__(master,**kwargs)
+
+        self.master = master
+        self.grand_master = master.master
+        self.tags = master.defined_tags
+        self.link_href = self.master.sidebar.link_href
+        self.link_text = self.master.sidebar.link_text
+
+        self.tag_box = master.sidebar.tag_box
+        self.entries = self.master.upside_bar.entries
+
+        font_property = font.Font(self, font="consolas 18 bold")
+        text_config = {"insertbackground":"yellow","bd":0,"font":font_property,"undo":True,"maxundo":-1,"wrap":WORD,"tabs":font_property.measure("    ")}
+        self.text = scrolledtext.ScrolledText(self,**text_config)
+        self.text.pack(expand=True,fill=BOTH,padx=5,pady=5)
+        self.text.bind("<ButtonRelease-1>",self.SetTagBox)
         self.text.bind("<KeyRelease>",self.KeyReleased)
-        self.text.bind("<ButtonRelease-1>",self.SetCombobox)
 
         self.text_shortcuts = {
-            "<Control-n>":lambda e: self.AddTagShortcut("normal")
-            ,"<Control-l>":self.InsertALink
-            ,"<Control-t>":self.InsertTabSection
-            ,"<Control-Key-1>":lambda e: self.AddTagShortcut("h1")
-            ,"<Control-Key-2>":lambda e: self.AddTagShortcut("h2")
-            ,"<Control-Key-3>":lambda e: self.AddTagShortcut("h3")
-            ,"<Control-Key-4>":lambda e: self.AddTagShortcut("code")
-            ,"<Control-Key-5>":lambda e: self.AddTagShortcut("code+tab")
+            # # , "<Control-l>": self.InsertALink
+            # , "<Control-t>": self.InsertTabSection
+            "<Control-n>": lambda e: self.ShortcutForTag("normal")
+            ,"<Control-t>": lambda e: self.ShortcutForTag("notag")
+            , "<Control-Key-1>": lambda e: self.ShortcutForTag("h1")
+            , "<Control-Key-2>": lambda e: self.ShortcutForTag("h2")
+            , "<Control-Key-3>": lambda e: self.ShortcutForTag("h3")
+            , "<Control-Key-4>": lambda e: self.ShortcutForTag("code")
+            , "<Control-Key-5>": lambda e: self.ShortcutForTag("code+tab")
+            , "<Control-Key-6>": lambda e: self.ShortcutForTag("normal")
+            , "<Control-Key-7>": lambda e: self.ShortcutForTag("notag")
+            ,"<Control-Return>": self.InsertNewLine
+            , "<Control-d>": self.CopySectionDown
         }
 
-        self.ConfigStyles()
+        self.ConfigTags()
         self.ConfigTextShortcuts()
 
-    def ShowTabSectionRules(self):
-        info_page = self.master.pages["blogwritingpage"]
-        self.master.ChangePage("blogwritingpage")
-        info_page.current_image = 3
-        info_page.ShowImage()
-
-    def ShowShortcuts(self):
-        if not self.show_shortcut_window:
-            self.show_shortcut_window = Toplevel(self.master,height=600,width=800)
-            self.show_shortcut_window.geometry("800x600+300+50")
-            l = Label(self.show_shortcut_window
-                      ,text=self.shortcut_text
-                      ,font="consolas 25 bold"
-                      ,justify='left'
-                      ,bg="white"
-                      ,fg="black")
-            l.pack(expand=True,fill=BOTH)
-            self.show_shortcut_window.protocol("WM_DELETE_WINDOW",self.OnShortcutWindowClose)
-        else:
-            self.show_shortcut_window.deiconify()
-            self.show_shortcut_window.geometry("800x600+300+50")
-
-    def OnShortcutWindowClose(self):
-        self.show_shortcut_window.destroy()
-        self.show_shortcut_window = None
+    def GiveIndexOfSel(self,default=("insert linestart","insert lineend")):
+        try:
+            i1,i2 = self.text.tag_ranges("sel")
+        except:
+            i1,i2 = default
+        return i1,i2
 
     def ConfigTextShortcuts(self):
-        for key,func in self.text_shortcuts.items():
-            self.text.bind(key,func=func)
+        for key,command in self.text_shortcuts.items():
+            self.text.bind(key,command)
 
-    def InsertTitle(self,title):
-        self.title.delete(0,"end")
-        self.title.insert(0,title)
-
-    def InsertMetaDesc(self,meta_desc):
-        self.meta_desc.delete(0,"end")
-        self.meta_desc.insert(0,meta_desc)
-
-    def InsertContent(self,records):
-        self.text.delete("1.0","end")
-        for record in records:
-            sno, type, tag, content = record
-            self.text.insert("insert",content,("tag",tag))
-            self.text.insert("insert","\n\n")
-
-    def ConfigStyles(self):
-        for style in self.style_keys:
-            if style in STYLES:
-                self.text.tag_config(style,selectforeground="white",selectbackground=COLORS["primary"],**STYLES[style])
-            else:
-                self.text.tag_config(style,selectbackground="blue",selectforeground="white"
-                                     ,background=COLORS["success"],foreground="white")
-
-    def InsertNewLine(self,to_ignore_condition=True):
-        if (to_ignore_condition or (not self.text.index("insert")==self.text.index("insert linestart"))):
-            self.text.insert("insert lineend","\n")
-            self.text.mark_set("insert","insert linestart +1l")
-
-    def InsertTabSection(self,e=None):
-        self.InsertNewLine(False)
-        self.text.insert("insert","Code,Desc\n#Your Code Here\n---\n#Your Desc Here",("tag","code+tab"))
+    def InsertNewLine(self,e=None):
+        self.text.mark_set("insert","insert lineend")
+        self.text.insert("insert","\n")
         return "break"
 
-    def InsertALink(self,e=None):
-        string = simpledialog.askstring("Enter The Link","Please enter the link and \nthe text to show in place of that link \nseparated by a comma \nas shown in format:\n\n\nformat = link,text_to_show")
-        if string:
-            string = string.strip()
-            list = string.split(",")
-            if len(list)==2:
-                link,text = list
-                self.text.insert("insert",f"<a href='{link}'>{text}</a>")
-            else:
-                messagebox.showerror("Error While Insertion Of Link","The Format in which you entered the link is wrong.\nPlease write the correct format")
+    def CopySectionDown(self,e=None):
+        i1,i2 = self.GiveIndexOfSel() # returns index of selected portion or index of insert line: start , end
+        text = self.text.get(i1,i2)
+        self.text.mark_set("insert",f"{i2}") # makes the index of insert = the last index of : selected portion / current line
+        self.InsertNewLine() # inserts a new line
+        self.text.insert("insert",text) # inserts text
+        self.text.tag_remove("sel",i1,i2)
+        return "break"
+
+    def ConfigTags(self):
+        config = {"selectbackground":"blue","selectforeground":"white"}
+        for tag in self.tags:
+            self.text.tag_config(tag,**config,**STYLES[tag])
+
+    def GetLineTag(self,index="insert"):
+        line_tag = None
+        for tag in self.text.tag_names(f"{index} linestart"):
+            if tag in self.tags:
+                line_tag = tag
+                break
+        return line_tag
+
+    def RemoveLineTag(self):
+        line_tag = self.GetLineTag()
+        if line_tag:
+            self.text.tag_remove(line_tag,"insert linestart","insert lineend")
+
+    def ShortcutForTag(self,tag):
+        self.tag_box.set(tag)
+        self.ChangeTag()
+
+    def ChangeTag(self):
+        tag_to_add = self.tag_box.get()
+        self.RemoveLineTag()
+        if tag_to_add in self.text.tag_names("insert linestart -1l"):
+            self.text.tag_add(tag_to_add,"insert linestart -1l","insert lineend")
         else:
-            messagebox.showerror("Link Not Inserted","You have not inserted the link")
-        if e:
-            return "break"
+            self.text.tag_add(tag_to_add,"insert linestart","insert lineend")
+    
+    def InsertLink(self):
+        href = self.link_href.get()
+        text = self.link_text.get()
+        if href and text:
+            if not self.text.index("insert")==self.text.index("insert linestart"):
+                self.InsertNewLine()
+            self.text.insert("insert",f"<a href='{href}'>{text}</a>")
+            self.link_href.delete("0","end")
+            self.link_text.delete("0","end")
+        else:
+            messagebox.showerror("Cannot Insert The Link","You had left either the href or LinkText box or both empty.\nThat is why we can't insert the link.\nPlease fill the boxes first and then try.")
+    
+    def InsertTabSection(self):
+        if not self.text.index("insert")==self.text.index("insert linestart"):
+            self.InsertNewLine()
+        self.text.insert("insert","Code,Desc\n#Your Code Here\n---\n#Your Desc Here","code+tab")
 
-    def InsertIMG(self,img):
-        self.InsertNewLine(False)
-        self.text.insert("insert linestart",f"<img alt='' src='{img}'>",("tag","img"))
-
+    def ChooseFiles(self,title,filetypes,command):
+        objects = filedialog.askopenfilenames(title=title,filetypes=filetypes,initialdir=self.grand_master.info["parent_dir"][0])
+        if objects:
+            if not self.text.index("insert")==self.text.index("insert linestart"):
+                self.InsertNewLine()
+            for obj in objects:
+                command(obj)
+   
     def ChooseIMG(self):
-        files = filedialog.askopenfilenames(filetypes=(("PNG","*.png"),("JPG","*jpg"),("JPEG","*.jpeg")))
-        if files:
-            for i in files:
-                self.InsertIMG(i)
+        self.ChooseFiles(title="Choose Image / Images(ctrl+click or select at ones for multiple images)",filetypes=(("PNG","*.png"),("JPG","*jpg"),("JPEG","*.jpeg")),command=self.InsertIMG)
 
-    def GiveLineStyle(self,index="insert linestart"):
-        style = None
-        for tag in self.text.tag_names(index):
-            if tag in self.style_keys:
-                style=tag
-                break
-        return style
+    def InsertIMG(self,image):
+        rel_path = os.path.relpath(image,self.grand_master.info["parent_dir"][0])
+        img = "/"+"/".join(rel_path.split("\\"))
+        self.text.insert("insert",f"<img class='img-fluid' alt='' src='{img}'/>")
+        self.ShortcutForTag("img")
+        self.InsertNewLine()
 
-    def RemoveStyles(self):
-        to_remove = self.GiveLineStyle()
-        if to_remove:
-            self.text.tag_remove(to_remove,"insert linestart","insert lineend")
+    def ChooseVideo(self):
+        kwargs = {"title":"Choose Video / Videos(ctrl+click or select at ones for multiple videos)","filetypes":(("MP4","*.mp4"),),"command":self.InsertVideo}
+        self.ChooseFiles(**kwargs)
 
-    def AddTag(self,e=None):
-        style = self.style.get()
-        self.RemoveStyles()
-        i1, i2 = "insert linestart", "insert lineend"
+    def InsertVideo(self,video):
+        rel_path = os.path.relpath(video,self.grand_master.info["parent_dir"][0])
+        vid = "/"+"/".join(rel_path.split("\\"))
+        self.text.insert("insert",f"<video preload='none' title='If the video does not load then please refresh/reload the page' src='{vid}' controls muted></video>")
+        self.ShortcutForTag("video")
+        self.InsertNewLine()
 
-        if style in self.text.tag_names("insert linestart -1l"):
-            i1,i2="insert linestart -1l","insert lineend"
-        elif style in self.text.tag_names("insert linestart +1l"):
-            i1,i2 = "insert linestart", "insert lineend +1l"
+    def SetTagBox(self,e=None):
+        line_tag = self.GetLineTag()
+        if not line_tag:
+            line_tag = "normal"
 
-        self.text.tag_add(style,i1,i2)
-        self.text.tag_add("tag",i1,i2)
+            prev_line_tag = self.GetLineTag("insert -1l")
+            if prev_line_tag in ("code","code+tab"):
+                line_tag = prev_line_tag
 
-    def AddTagShortcut(self,tag):
-        self.style.set(tag)
-        self.AddTag()
-
-    def MaintainTag(self,e=None):
-        style_on_line = self.GiveLineStyle()
-        if style_on_line:
-            self.style.set(style_on_line)
-        else: # written so as to automatically add tag to next line if tag in multi_liner_tag
-            self.style.set("normal")
-            multi_liner_tags = ("code", "code+tab")
-            for tag in multi_liner_tags:
-                if tag in self.text.tag_names("insert linestart -1l"):
-                    self.style.set(tag)
-                    break
-        self.AddTag()
-
-    def SetCombobox(self,e=None):
-        style = "normal"
-        for tag in self.text.tag_names("insert linestart"):
-            if tag in self.style_keys:
-                style=tag
-                break
-        self.style.set(style)
+        self.tag_box.set(line_tag)
 
     def KeyReleased(self,e=None):
-        self.MaintainTag()
-        self.SetCombobox()
+        self.SetTagBox()
+        self.ChangeTag()
+    
+    def ConvertToHTML(self):
+        tags_to_convert = tuple(TAG_TEMPLATES.keys())
+        sno = 0
+        section_is_present = False
+        for tag in tags_to_convert:
+            index = 0
+            tag_template = TAG_TEMPLATES[tag]
+            func_to_call = eval(tag_template[-1])
+            while True:
+                try:
+                    sno_increment , index_increment = func_to_call(sno, index, tag, tag_template)
+                    index += index_increment
+                    sno += sno_increment
+                except Exception as e:
+                    break
+            if tag=="h2" and index>0:
+                section_is_present = True
 
-    def SaveBlog(self):
-        title = self.title.get()
-        meta_desc = self.meta_desc.get()
-        if not (title and meta_desc):
-            messagebox.showerror("Error ! Could Not Save","You left the title box or meta_desc box empty")
-            return
+        html = self.text.get("1.0","end").strip()
+        self.text.delete("1.0","end")
+        self.text.insert("1.0",html)
 
-        records = []
-        ranges = self.text.tag_ranges("tag")
-        content = "\n<!--Content starts here-->\n"
-        for i in range(0,len(ranges),2):
-            r1,r2 = ranges[i],ranges[i+1]
-            style = self.GiveLineStyle(r1)
-            text = self.text.get(r1,r2)
-            # text = r"\'".join(text.split("'"))
-            # text = r'\"'.join(text.split('"'))
-            record = (len(records),"content",style,text)
-            content+=self.ConvertToTag(record)
-            records.append(record)
-        content+="\n</div>\n\n<!--Content ends here-->\n"
+        if section_is_present:
+            self.text.insert("end","</div>") # to end the last section
 
-        teleporter = self.CreateTeleporter(records)
-        records.append((len(records),"title","title",title))
-        records.append((len(records),"meta_desc","meta_desc",meta_desc))
-        variable_to_pass = (records,title,meta_desc,teleporter,content)
-        self.master.SaveBlog(variable_to_pass)
 
-        self.first_h2_content = True
+    def ConvertToNormalTag(self,sno,index,tag,tag_template,**kwargs):
+        id = f"{tag}-{sno}"
+        r = self.text.tag_ranges(tag)[index]
 
-    def ConvertToTag(self,record):
-        #(sno,type,tag,content)
-        sno, type, tag, content = record
-        html = f"\n<!--{tag} STARTS HERE-->\n"
-        if tag=="h2" and self.first_h2_content:
-            self.first_h2_content = False
-            html+="\n<div class='section'>\n"
-        elif tag=="h2":
-            html+="\n</div>\n<div class='section'>\n"
+        if index%2==0:
+            sno_increment = 1
+            index_increment = 2
 
-        if tag=="code+tab":
-            html += self.CreateTabSection(sno,content)
-        elif tag=="img":
-            html += content
+            if not self.text.get(r,self.text.tag_ranges(tag)[index+1]).strip():
+                return sno_increment,index_increment
+
+            text_to_add = tag_template[0].format(id=id,**kwargs)
+
         else:
-            S_T_G = STYLE_TO_TAG[tag] # STYLE_TO_TAG for a particular tag
-            at_start = (
-                    S_T_G[0][:S_T_G[-1]]  #initial tag section after which id can be inserted
-                    + f" id='{tag}-{sno}'"  #inserting the id with a blank splace at start
-                    + S_T_G[0][S_T_G[-1]:] #inserting the rest of tag section needed to insert
-                    )
-            at_end = S_T_G[1]
-            html += at_start+content+at_end
+            text_to_add = tag_template[1]
+            sno_increment = 0
+        
+        self.text.insert(r,text_to_add,tag)
+        index_increment = 1 
+        return sno_increment,index_increment
 
-        html+=f"\n<!--{tag} ENDS HERE-->\n"
-        return html
+    def ConvertToH2(self,sno,index,tag,tag_template):
+        id = f"{tag}-{sno}"
+        r = self.text.tag_ranges(tag)[index]
+        if index==0:
+            sno_increment = 1
+            text_to_add = tag_template[0].format(id=id,section_end="")
 
-    def CreateTabSection(self,sno,content):
-        html = f"<div id='tabsection-{sno}'>"
-        tab_links,tab_targets = content.split("\n",maxsplit=1)
-        html += self.CreateTabLink(sno,tab_links) + self.CreateTabTarget(sno,tab_targets)
-        html += "\n</div>"
-        return html
+        elif index%2==0:
+            sno_increment = 1
+            text_to_add = tag_template[0].format(id=id, section_end="</div>")
 
-    def CreateTabLink(self,unique_no,tab_links):
-        html = "\n<nav>\n<div class='nav nav-tabs' role='tablist'>\n"
-        links = tab_links.split(",")
-        for index,link in enumerate(links):
-            a_link = "<a data-bs-toggle='tab' role='tab' class='nav-link "
-            if index==0:
-                a_link += "active' aria-selected='true' "
-            else:
-                a_link += "aria-selected='false' "
-            a_link += f"id='tabid-{unique_no}-{index}' aria-controls='tabtarget-{unique_no}-{index}' href='#tabtarget-{unique_no}-{index}'>"
-            a_link += link+"</a>"
-            html += a_link
-        html += "\n</div>\n</nav>"
-        return html
+        else:
+            sno_increment = 0
+            text_to_add = tag_template[1]
 
-    def CreateTabTarget(self,unique_no,tab_targets):
-        html = "\n<div class='tab-content'>"
-        targets = tab_targets.split("---")
-        for index,target in enumerate(targets):
-            target_tag = f"\n<div role='tabpanel' aria-labelledby='tabid-{unique_no}-{index}' id='tabtarget-{unique_no}-{index}' class='tab-pane fade show "
-            if index==0:
-                target_tag += "active'><pre>"
-            else:
-                target_tag += "'><pre>"
-            target_tag += f"<code class='python'>{target.strip()}</code></pre></div>"
-            html += target_tag
-        html += "\n</div>"
-        return html
+        self.text.insert(r,text_to_add,tag)
+        index_increment = 1
+        return sno_increment,index_increment
 
-    def CreateTeleporter(self,records):
-        teleporter = ""
-        h3_found = False
-        for record in records:
-            sno,type,tag,content=record
-            if tag=="h2":
-                if h3_found:
-                    teleporter += "</nav>"
-                    h3_found = False
-                teleporter += f"<a class='nav-link' href='#{tag}-{sno}'>{content}</a>"
-            elif tag=="h3":
-                if not h3_found:
-                    teleporter += "<nav class='nav nav-pills flex-column ml-3 my-1'>"
-                    h3_found = True
-                teleporter += f"<a class='nav-link' href='#{tag}-{sno}'>{content}</a>"
-        return teleporter
+    def ConvertToCode(self,sno,index,tag,tag_template):
+        return self.ConvertToNormalTag(sno,index,tag,tag_template,language=self.entries["language"].get())
 
+    def ConvertToTabSection(self,sno,index,tag,tag_template):
+        r1,r2 = self.text.tag_ranges(tag)[index:index+2]
+        id = f"{tag}-{sno}"
+
+        text = self.text.get(r1,r2)
+        links,blocks = text.split("\n",maxsplit=1)
+
+        blocks = blocks.split("---")
+        links = links.split(",")
+
+        html = tag_template[0]["tag"]
+        link_html = block_html = ""
+
+        for i,link in enumerate(links):
+            kwargs = {
+                "active":""
+                ,"selected":"false"
+                ,"id":f"tab-link-{sno}-{i}"
+                ,"target":f"tab-target-{sno}-{i}"
+                ,"content":link.strip()
+            }
+            if i==0:
+                kwargs["active"] = "active"
+                kwargs["selected"] = "true"
+            link_html += tag_template[0]["link"].format(**kwargs)
+   
+        for i,block in enumerate(blocks):
+            kwargs = {
+                "active":""
+                ,"language":self.entries["language"].get()
+                ,"link":f"tab-link-{sno}-{i}"
+                ,"id":f"tab-target-{sno}-{i}"
+                ,"content":block.strip()
+            }
+            if i== 0:
+                kwargs["active"] = "active"
+
+            block_html += tag_template[0]["tag_block"].format(**kwargs)
+
+
+        html = html.format(id=id,tag_links=link_html,tag_blocks=block_html)
+
+        self.text.replace(r1,r2,html,"code+tab")
+
+        index_increment = 2
+        sno_increment = 1
+        return sno_increment,index_increment
+
+
+
+if __name__=="__main__":
+    root = Tk()
+    root.geometry("1300x700+0+0")
+
+    text_page = TextPage(root)
+    text_page.pack(fill=BOTH,expand=True)
+
+    root.mainloop()
+
+# from .page import *
+# from tkinter import ttk,scrolledtext,filedialog,messagebox,font
+# from pages.utils import *
+# import os
+
+# class TextPage(Page):
+#     def __init__(self,master,**kwargs):
+#         super().__init__(master,**kwargs)
+#         self.content = ""  # A variable for storing the saved content of a blog
+
+#         # Creating all the frames and dividing the page
+#         self.upside_bar = Frame(self,height=100,bg=COLORS["dark"])
+#         self.sidebar = Frame(self,width=350,bg="lightgrey")
+#         self.text_bar = Frame(self,bg="grey")
+
+#         self.upside_bar.pack(side=TOP,fill=X)
+#         self.sidebar.pack(side=LEFT,fill=Y)
+#         self.text_bar.pack(side=LEFT,fill=BOTH,expand=True)
+
+#         self.upside_bar.grid_propagate(0)
+#         self.sidebar.grid_propagate(0)
+
+#         # UPSIDE_BAR
+#         self.save_button = HoverableButton(self.upside_bar
+#                                            ,on_enter={"background":"darkgreen","foreground":"lightgrey"}
+#                                            ,foreground="white",background=COLORS["success"]
+#                                            ,font="consolas 18 bold",text="Save"
+#                                            ,bd=0,command=self.SaveBlog)
+#         self.save_button.grid(row=0,column=0,sticky="nsew",rowspan=2,pady=(10,0),padx=20)
+
+#         label_config = {
+#             "font":"consolas 20 bold"
+#             ,"bg":COLORS["dark"]
+#             ,"fg":"white"
+#         }
+#         t_label = Label(self.upside_bar,text="Title:",**label_config)
+#         t_label.grid(row=0,column=1,sticky="nsew",pady=5)
+#         m_label = Label(self.upside_bar,text="Meta Desc:",**label_config)
+#         m_label.grid(row=1,column=1,sticky="nsew")
+#         l_label = Label(self.upside_bar,text="Language:",**label_config)
+#         l_label.grid(row=0,column=3,sticky="nsew",padx=(20,0),pady=5)
+
+#         self.entries = {
+#             "title":ttk.Entry(self.upside_bar,font="consolas 16 bold")
+#             ,"meta_desc":ttk.Entry(self.upside_bar,font="consolas 16 bold")
+#             ,"language":ttk.Entry(self.upside_bar,font="consolas 16 bold")
+#         }
+
+#         self.entries["title"].grid(row=0,column=2,sticky="nsew",pady=5)
+#         self.entries["meta_desc"].grid(row=1,column=2,sticky="nsew")
+#         self.entries["language"].grid(row=0,column=4,sticky="nsew",pady=5)
+#         self.entries["language"].insert(0,"python")
+
+#         self.know_shortcuts = HoverableButton(self.upside_bar,on_enter={"background":COLORS["dark"]}
+#                                               ,background=COLORS["secondary"],foreground="white"
+#                                               ,text="Show Shortcuts",font="consolas 20 bold"
+#                                               ,bd=0)
+#         self.know_shortcuts.grid(row=0,column=5,sticky="nsew",rowspan=2,pady=15,padx=20)
+
+#         # SIDEBAR 
+
+#         label_config = {"font":"consolas 16 bold","bg":"lightgrey"}
+        
+#         self.tags = (*STYLES.keys(),)
+#         Label(self.sidebar,text="Tag:",**label_config).grid(row=0,column=0,pady=10,padx=(10,))
+#         self.tag_box = ttk.Combobox(self.sidebar,values=self.tags,font="consolas 14 bold")
+#         self.tag_box.grid(row=0,column=1,pady=10)
+#         self.tag_box.bind("<<ComboboxSelected>>",self.ChangeTag)
+
+#         self.insert_img = HoverableButton(self.sidebar
+#                                           ,on_enter={"foreground":"darkgrey"}
+#                                           ,foreground="white"
+#                                           ,background="darkblue"
+#                                           ,font="consolas 20 bold"
+#                                           ,text="Insert Img"
+#                                           ,command=self.ChooseIMG
+#                                           )
+#         self.insert_img.grid(row=1,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
+
+#         self.insert_video = HoverableButton(self.sidebar
+#                                           ,on_enter={"foreground":"darkgrey"}
+#                                           ,foreground="white"
+#                                           ,background=COLORS["success"]
+#                                           ,font="consolas 20 bold"
+#                                           ,text="Insert Video"
+#                                           ,command=self.ChooseVideo
+#                                           )
+#         self.insert_video.grid(row=2,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
+
+
+
+#         self.insert_tabsection = HoverableButton(self.sidebar
+#                                           ,on_enter={"foreground":"darkgrey"}
+#                                           ,foreground="white"
+#                                           ,background=COLORS["secondary"]
+#                                           ,font="consolas 20 bold"
+#                                           ,text="Insert TabSection"
+#                                           ,command=self.InsertTabSection)
+#         self.insert_tabsection.grid(row=3,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
+
+#         Label(self.sidebar,text="href:",**label_config).grid(row=4,column=0,padx=10,pady=(10,0))
+#         self.link_href = ttk.Entry(self.sidebar,font="consolas 14 bold")
+#         self.link_href.grid(row=4,column=1,pady=(10,0))
+
+#         Label(self.sidebar,text="LinkText:",**label_config).grid(row=5,column=0,padx=5,pady=(10,0))
+#         self.link_text = ttk.Entry(self.sidebar,font="consolas 14 bold")
+#         self.link_text.grid(row=5,column=1,pady=(10,0))
+
+#         self.insert_link = HoverableButton(self.sidebar
+#                                           ,on_enter={"foreground":"darkgrey"}
+#                                           ,foreground="white"
+#                                           ,background=COLORS["danger"]
+#                                           ,font="consolas 20 bold"
+#                                           ,text="Insert The Link"
+#                                           ,command=self.InsertLink
+#                                           )
+#         self.insert_link.grid(row=6,column=0,columnspan=2,padx=10,pady=(10,0),sticky="nsew")
+
+#         # TEXT_AREA
+#         font_property = font.Font(self, font="consolas 18 bold")
+#         self.text = scrolledtext.ScrolledText(self.text_bar,font="consolas 18 bold"
+#                                             ,undo=True,maxundo=-1
+#                                             ,wrap=WORD,tabs=font_property.measure("    ")
+#                                             ,insertbackground="yellow",bd=0
+#                                             )
+#         self.text.pack(expand=True,fill=BOTH,padx=5,pady=5)
+#         self.text.bind("<ButtonRelease-1>",self.SetTag)
+#         self.text.bind("<KeyRelease>",self.KeyReleased)
+
+#         self.text_shortcuts = {
+#             "<Control-n>": lambda e: self.AddTagShortcut("normal")
+#             # , "<Control-l>": self.InsertALink
+#             # , "<Control-t>": self.InsertTabSection
+#             , "<Control-Key-1>": lambda e: self.AddTagShortcut("h1")
+#             , "<Control-Key-2>": lambda e: self.AddTagShortcut("h2")
+#             , "<Control-Key-3>": lambda e: self.AddTagShortcut("h3")
+#             , "<Control-Key-4>": lambda e: self.AddTagShortcut("code")
+#             , "<Control-Key-5>": lambda e: self.AddTagShortcut("code+tab")
+#             , "<Control-Key-6>": lambda e: self.AddTagShortcut("normal")
+#             , "<Control-Return>": self.InsertNewLine
+#             , "<Control-d>": self.CopySectionDown
+#         }
+
+#         self.shortcuts = {
+#             "<Control-s>":self.SaveBlog
+#         }
+
+#         self.ConfigTag()
+#         self.ConfigTextShortcuts()
+
+#     def ChooseFiles(self,title,filetypes,command):
+#         objects = filedialog.askopenfilenames(title=title,filetypes=filetypes,initialdir=self.master.info["parent_dir"][0])
+#         if objects:
+#             for obj in objects:
+#                 command(obj)
+
+#     def ChooseIMG(self):
+#         self.InsertNewLine()
+#         self.ChooseFiles(title="Choose Image / Images(ctrl+click or select at ones for multiple images)"
+#                         ,filetypes=(("PNG","*.png"),("JPG","*jpg"),("JPEG","*.jpeg"))
+#                         ,command=self.InsertIMG
+#         )
+
+#     def InsertIMG(self,image):
+#         rel_path = os.path.relpath(image,self.master.info["parent_dir"][0])
+#         img = "/"+"/".join(rel_path.split("\\"))
+#         self.text.insert("insert linestart",f"<img class='img-fluid' alt='' src='{img}'>","img")
+    
+#     def ChooseVideo(self):
+#         self.InsertNewLine()
+#         self.ChooseFiles(title="Choose Video / Videos(ctrl+click or select at ones for multiple videos)"
+#                         ,filetypes=(("MP4","*.mp4"),)
+#                         ,command=self.InsertVideo
+#         )
+
+#     def InsertVideo(self,video):
+#         rel_path = os.path.relpath(video,self.master.info["parent_dir"][0])
+#         vid = "/"+"/".join(rel_path.split("\\"))
+#         self.text.insert("insert linestart",f"<video preload='none' title='If the video does not load then please refresh/reload the page' src='{vid}' controls muted></video>\n","video")
+
+#     def GiveIndexOfSel(self,d1,d2):
+#         try:
+#             i1,i2 = self.text.index("sel.first"),self.text.index("sel.last")
+#         except:
+#             i1,i2 = d1,d2
+#         return i1,i2
+
+#     def ConfigTag(self):
+#         for tag,value in STYLES.items():
+#             self.text.tag_config(tag,selectbackground="blue",selectforeground="white",**value)
+        
+#         config = {
+#                 "background":COLORS["success"]
+#                 ,"foreground":"white"
+#                 ,"selectbackground":"blue"
+#                 ,"selectforeground":"white"
+#         }
+#         self.text.tag_config("img",**config)
+#         self.text.tag_config("a",**config)
+#         self.text.tag_config("video",**config)
+
+#     def ConfigTextShortcuts(self):
+#         for key,command in self.text_shortcuts.items():
+#             self.text.bind(key,command)
+
+#     def InsertNewLine(self,e=None):
+#         self.text.insert("insert lineend","\n")
+#         self.text.mark_set("insert","insert +1l linestart")
+#         return "break"
+
+#     def InsertLink(self):
+#         href = self.link_href.get()
+#         text = self.link_text.get()
+#         if href and text:
+#             self.InsertNewLine()
+#             self.text.insert("insert",f"<a href='{href}'>{text}</a>","a")
+#         else:
+#             messagebox.showerror("Cannot Insert The Link","You had left either the href or LinkText box or both empty.\nThat is why we can't insert the link.\nPlease fill the boxes first and then try.")
+
+#     def InsertTabSection(self):
+#         self.InsertNewLine()
+#         self.text.insert("insert","Code,Desc\n#Your Code Here\n---\n#Your Desc Here","code+tab")
+
+#     def CopySectionDown(self,e=None):
+#         i1,i2 = self.GiveIndexOfSel("insert","insert")
+#         copy = self.text.get(f"{i1} linestart",f"{i2} lineend")
+#         self.text.insert(f"{i2} lineend","\n")
+#         self.text.mark_set("insert",f"{i2} +1l linestart")
+#         self.text.tag_remove("sel",i1,i2)
+#         self.text.insert("insert",copy)
+
+#     def AddTagShortcut(self,tag):
+#         self.tag_box.set(tag)
+#         self.ChangeTag()
+
+#     def GetLineTag(self,index="insert"):
+#         line_tag = None
+#         for tag in STYLES.keys():
+#             if tag in self.text.tag_names(f"{index} linestart"):
+#                 line_tag = tag
+#                 break
+#         return line_tag
+
+#     def RemoveAllTags(self):
+#         line_tag = self.GetLineTag()
+#         if line_tag:
+#             self.text.tag_remove(line_tag,"insert linestart","insert lineend")
+
+#     def ChangeTag(self,e=None):
+#         tag = self.tag_box.get()
+#         self.RemoveAllTags()
+#         if not self.text.get("insert linestart","insert lineend"): # if the line is empty then returns 
+#             return
+#         if tag in self.text.tag_names("insert linestart -1l"):
+#             self.text.tag_add(tag, "insert linestart -1l", "insert lineend")
+#         else:
+#             self.text.tag_add(tag, "insert linestart", "insert lineend")
+
+#     def SetTag(self,e):
+#         tags_in_line = self.text.tag_names("insert linestart")[::-1]
+#         tag_setted = False
+#         for tag in tags_in_line:
+#             if tag in self.tags:
+#                 self.tag_box.set(tag)
+#                 tag_setted = True
+#                 break
+
+#         if not tag_setted:
+#             for tag in MULTI_LINER_TAGS:
+#                 if tag in self.text.tag_names("insert linestart -1l"):
+#                     self.tag_box.set(tag) 
+#                     break
+#             else:
+#                 self.tag_box.set("normal")
+
+#     def CheckIfMultipleTagsExists(self):
+#         tags = []
+#         also_check = ("img","video")
+#         for tag in self.tags:
+#             if tag in self.text.tag_names("insert linestart"):
+#                 tags.append(tag)
+#         if len(tags)>1:
+#             self.RemoveAllTags()
+#             self.text.tag_add(tags[-1],"insert linestart","insert lineend")
+#         else:
+#             for tag in also_check:
+#                 if tag in self.text.tag_names("insert linestart"):
+#                     self.text.tag_remove(tags[0])
+#                     break
+
+#     def KeyReleased(self,e):
+#         self.SetTag(e)
+#         self.ChangeTag(e)
+#         self.CheckIfMultipleTagsExists()
+
+#     def InsertTextRecords(self,records,clear_text=False):
+#         if clear_text:
+#             self.text.delete("1.0","end")
+#         for record in records:
+#             self.text.insert("insert",record[0],record[1])
+#             self.text.insert("insert","\n\n")
+
+#     def InsertEntries(self,**kwargs):
+#         entries = self.entries
+#         for key,value in kwargs.items():
+#             entries[key].delete("0","end")
+#             entries[key].insert("0",value)
+
+#     def ConvertToHTMLEntitites(self):
+#         entites = {
+#             ">":"&gt;"
+#             ,"<":"&lt;"
+#         }
+#         for entity,name in entites.items():
+#             while True:
+#                 try:
+#                     index = self.text.search(entity,"1.0","end")
+#                     line_tag = self.GetLineTag(index)
+#                     self.text.replace(index,f"{index} +{len(entity)}c",name,line_tag)
+#                 except:
+#                     break
+
+#     def ConvertToHTML(self):
+#         self.ConvertToHTMLEntitites()
+#         defined_tags = ("h1","h2","h3","normal","code","code+tab")
+#         sno = 0
+#         section_is_present = False
+#         for tag in defined_tags:
+#             index = 0
+#             tag_template = TAG_TEMPLATES[tag]
+#             while True:
+#                 try:
+#                     func_to_call = eval(tag_template[-1])
+#                     sno_increment , index_increment = func_to_call(sno, index, tag, tag_template)
+#                     index += index_increment
+#                     sno += sno_increment
+#                 except Exception as e:
+#                     break
+#             if tag=="h2" and index>0:
+#                 section_is_present = True
+
+#         if section_is_present:
+#             self.text.insert("end","</div>") # to end the last section
+
+#     def ConvertToNormalTag(self,sno,index,tag,tag_template,**kwargs):
+#         id = f"{tag}-{sno}"
+#         r = self.text.tag_ranges(tag)[index]
+
+#         if index%2==0:
+#             sno_increment = 1
+#             index_increment = 2
+
+#             if not self.text.get(r,self.text.tag_ranges(tag)[index+1]).strip():
+#                 return sno_increment,index_increment
+
+#             text_to_add = tag_template[0].format(id=id,**kwargs)
+
+#         else:
+#             text_to_add = tag_template[1]
+#             sno_increment = 0
+        
+#         self.text.insert(r,text_to_add,tag)
+#         index_increment = 1 
+#         return sno_increment,index_increment
+
+#     def ConvertToH2(self,sno,index,tag,tag_template):
+#         id = f"{tag}-{sno}"
+#         r = self.text.tag_ranges(tag)[index]
+#         if index==0:
+#             sno_increment = 1
+#             text_to_add = tag_template[0].format(id=id,section_end="")
+
+#         elif index%2==0:
+#             sno_increment = 1
+#             text_to_add = tag_template[0].format(id=id, section_end="</div>")
+
+#         else:
+#             sno_increment = 0
+#             text_to_add = tag_template[1]
+
+#         self.text.insert(r,text_to_add,tag)
+#         index_increment = 1
+#         return sno_increment,index_increment
+
+#     def ConvertToCode(self,sno,index,tag,tag_template):
+#         return self.ConvertToNormalTag(sno,index,tag,tag_template,language=self.entries["language"].get())
+
+#     def ConvertToTabSection(self,sno,index,tag,tag_template):
+#         r1,r2 = self.text.tag_ranges(tag)[index:index+2]
+#         id = f"{tag}-{sno}"
+
+#         text = self.text.get(r1,r2)
+#         links,blocks = text.split("\n",maxsplit=1)
+
+#         blocks = blocks.split("---")
+#         links = links.split(",")
+
+#         html = tag_template[0]["tag"]
+#         link_html = block_html = ""
+
+#         for i,link in enumerate(links):
+#             kwargs = {
+#                 "active":""
+#                 ,"selected":"false"
+#                 ,"id":f"tab-link-{sno}-{i}"
+#                 ,"target":f"tab-target-{sno}-{i}"
+#                 ,"content":link.strip()
+#             }
+#             if i==0:
+#                 kwargs["active"] = "active"
+#                 kwargs["selected"] = "true"
+#             link_html += tag_template[0]["link"].format(**kwargs)
+   
+#         for i,block in enumerate(blocks):
+#             kwargs = {
+#                 "active":""
+#                 ,"language":self.entries["language"].get()
+#                 ,"link":f"tab-link-{sno}-{i}"
+#                 ,"id":f"tab-target-{sno}-{i}"
+#                 ,"content":block.strip()
+#             }
+#             if i== 0:
+#                 kwargs["active"] = "active"
+
+#             block_html += tag_template[0]["tag_block"].format(**kwargs)
+
+
+#         html = html.format(id=id,tag_links=link_html,tag_blocks=block_html)
+
+#         self.text.replace(r1,r2,html,"code+tab")
+
+#         index_increment = 2
+#         sno_increment = 1
+#         return sno_increment,index_increment
+
+#     def SaveBlog(self,e=None):
+#         self.ConvertToHTML()
+#         entries = {
+#             " title ":self.entries["title"].get()
+#             ," meta_desc ":self.entries["meta_desc"].get()
+#             ," content ":self.text.get("1.0","end")
+#         }
+#         self.master.SaveBlog(entries)
+
+#     def UpdateAllBlogs(self):
+#         self.ConvertToHTML()
+#         entries = {
+#             " title ":self.entries["title"].get()
+#             ," meta_desc ":self.entries["meta_desc"].get()
+#             ," content ":self.text.get("1.0","end")
+#         }
+#         self.master.SaveFile(entries)

@@ -1,0 +1,178 @@
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup(html,"html.parser")
+
+# ALL THESE SOUP METHODS CAN BE USED FOR A PARTICULAR ELEMENT AS WELL #
+
+>>  soup.find_all(tag,**attr)  # attr includes id,class and other attributes
+                               # class is given by class_
+                               # returns all elements with those attributes
+
+>>  element.findChild(tag,**attr)  # returns the first element with all those arguments
+                                   # if not found return None
+
+>>  element.encode_contents()  # returns innerhtml of an element (in binary)
+                               # To convert in strings:
+                                    element.encode_contents().decode()
+                                        or
+                                    element.decode_contents()
+
+# The loss of using this method is that
+it does converts symbols like > < etc
+into html entities and then returns the innerhtml.
+
+Another thing which you can do is:
+child.contents
+For example:
+
+Suppose i want innerhtml of the following tag:
+
+tag = """
+<code class="python">Combobox -->; # Entry + MenuButton
+Notebook -->; Used to create tab sections
+Progressbar
+Separator
+Sizegrip
+Treeview
+Click the link for More info :
+<a href="https://docs.python.org/3/library/tkinter.ttk.html">Official python tkinter docs</a></code>
+"""
+
+tag.encode_contents().decode() / tag.decode_contents() will return you
+"""
+Combobox --&gt; # Entry + MenuButton
+Notebook --&gt; Used to create tab sections
+Progressbar
+Separator
+Sizegrip
+Treeview
+Click the link for More info :
+<a href="https://docs.python.org/3/library/tkinter.ttk.html">Official python tkinter docs</a>
+"""
+
+To get the text such that the html entities like &gt;
+gets converted and then you get the text you can do
+something like
+
+list_of_contents = tag.contents
+# In this case tag.contents = ['Combobox --> # Entry + MenuButton\nNotebook --> Used to create tab sections\nProgressbar\nSeparator\nSizegrip\nTreeview\nClick the link for More info :\n', <a href="https://docs.python.org/3/library/tkinter.ttk.html">Official python tkinter docs</a>]
+text = ""
+for content in list_of_contents:
+    text+=str(content)
+
+# At the end you will get the innerhtml of the tag
+# Right now text is equals to (as i wanted)
+"""
+Combobox --> # Entry + MenuButton
+Notebook --> Used to create tab sections
+Progressbar
+Separator
+Sizegrip
+Treeview
+Click the link for More info :
+<a href="https://docs.python.org/3/library/tkinter.ttk.html">Official python tkinter docs</a>
+"""
+
+
+
+
+
+
+
+>>  soup.children              # returns a list_iterator of childrens
+                               # traversing the list will give you children
+
+
+>> To find children of a particular element
+    element.findChildren(tag,**attr)
+    # if nothing is given in arguments returns all the children of the elements
+
+    # it also returns the child elements of the children
+    # To stop that just give keyword argument >>>  recursive=False
+
+>> print(element)           # prints the whole element along with tag
+   print(element.string)    # prints the text in the element
+
+>> element.name             # tag of the element
+
+# DIR (ELEMENT) #
+
+'append', 'attrs', 'can_be_empty_element', 'cdata_list_attributes', 'childGenerator',
+'children', 'clear', 'contents', 'decode', 'decode_contents', 'decompose',
+'decomposed', 'descendants', 'encode', 'encode_contents', 'extend', 'extract',
+
+'fetchNextSiblings', 'fetchParents', 'fetchPrevious', 'fetchPreviousSiblings',
+'find', 'findAll', 'findAllNext', 'findAllPrevious', 'findChild', 'findChildren',
+'findNext', 'findNextSibling', 'findNextSiblings', 'findParent', 'findParents',
+
+'findPrevious', 'findPreviousSibling', 'findPreviousSiblings', 'find_all',
+'find_all_next', 'find_all_previous', 'find_next', 'find_next_sibling',
+'find_next_siblings', 'find_parent', 'find_parents', 'find_previous',
+'find_previous_sibling', 'find_previous_siblings', 'format_string',
+
+'formatter_for_name', 'get', 'getText', 'get_attribute_list', 'get_text', 'has_attr'
+, 'has_key', 'hidden', 'index', 'insert', 'insert_after', 'insert_before',
+'isSelfClosing', 'is_empty_element', 'known_xml', 'name', 'namespace',
+'next', 'nextGenerator', 'nextSibling', 'nextSiblingGenerator', 'next_element',
+
+'next_elements', 'next_sibling', 'next_siblings', 'parent', 'parentGenerator',
+'parents', 'parserClass', 'parser_class', 'prefix', 'preserve_whitespace_tags',
+'prettify', 'previous', 'previousGenerator', 'previousSibling', 'previousSiblingGenerator',
+
+'previous_element', 'previous_elements', 'previous_sibling', 'previous_siblings',
+'recursiveChildGenerator', 'renderContents', 'replaceWith', 'replaceWithChildren',
+'replace_with', 'replace_with_children', 'select', 'select_one', 'setup', 'smooth',
+'sourceline', 'sourcepos', 'string', 'strings', 'stripped_strings', 'text', 'unwrap', 'wrap'
+
+
+
+
+
+
+# TO SELECT A META TAG WITH NAME="DSCRIPTION" AS **KWARGS#
+
+element = soup/another_element.findChild("meta",name="description")
+# This will produce an error
+
+element = soup/another_element.findChild("meta",{"name":"description"})
+# This will give the desired element
+
+
+
+
+## SQL
+
+>> Operators like + ,- etc can be used within a function
+
+>>  In sql as there is a left function which is used to get starting n characters
+    similarly there is a right function which is used to get last n characters
+
+>>  Note: There Can Be Multiple arguments while using concat function
+
+>> There is a length function as well: 
+    syntax: LENGTH(string)
+
+    # Note that this function can be called in any other function as well
+    For example: RIGHT(string , LENGTH(string)-10)
+                will give last 10 characters of the string
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

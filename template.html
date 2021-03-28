@@ -1,3 +1,4 @@
+<!-- ! NOTE THAT IF THE TEMPLATE INCLUDE '{}' THEN   -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -12,11 +13,11 @@
       crossorigin="anonymous"
     />
 
-    <link rel="stylesheet" href="/style.css">
-        <link rel="stylesheet"
-    href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/agate.min.css">
-    <title>{{ title }}</title>
-    <meta name="description" content="{{ meta_desc }}">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/agate.min.css">
+    <link rel="shortcut icon" href="/logo.png" type="image/x-icon">
+    <title>$title</title>
+    <meta name="description" content="$meta_desc">
   </head>
   <body data-bs-spy="scroll" data-bs-target="#teleporter" data-bs-offset="0" tabindex="0">
 
@@ -40,10 +41,12 @@
                 Python
               </a>
               <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <li><a class="dropdown-item" href="/src/pygame.html">Pygame</a></li>
                 <li><a class="dropdown-item" href="/src/python.html">Python</a></li>
                 <li><a class="dropdown-item" href="/src/python-modules.html">Python Modules</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="/src/tkinter.html">tkinter</a></li>
+                <li><a class="dropdown-item" href="/src/tkinter-widgets.html">tkinter-widgets</a></li>
               </ul>
             </li>
           </ul>
@@ -61,14 +64,14 @@
         <div class="col-sm-3">
           <div id="teleporter-holder" class="d-none d-sm-none d-md-none d-lg-block">
             <nav id="teleporter" class="nav nav-pills flex-column bg-light p-5 pt-0 text-wrap">
-                <a href="#" class="navbar-brand text-danger font-weight-bolder">Teleporter</a>
-                {{ teleporter }}
+                <a href="#" class="navbar-brand text-danger fw-bolder">Teleporter</a>
+                $teleporter
             </nav>
           </div>
         </div>
 
-        <div id="content" class="col-sm-7 p-3 language-python">
-{{ content }}
+        <div id="content" class="col-sm-7 p-3">
+$content
         </div>
 
       </div>
